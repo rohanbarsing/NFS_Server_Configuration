@@ -1,0 +1,182 @@
+NIS Client Configuration:
+[LOGIN WITH THE ROOT USER]
+
+[root@client1 ~]# hostnamectl set-hostname clientX
+[REPLACE WITH ACTIUAL CLIENT PC NUMBER HERE AT X]
+
+[root@client1 ~]# hostname
+[OUTPUT WILL BE YOUR ACTUAL CLIENT NO. THAT IS GIVEN AS PC NAME.]
+
+[root@client1 ~]# vi /etc/hosts
+at last line enter below entries of nisserver and clients:
+192.168.101.172 mtek-srv.mteklab mtek-srv
+192.168.XXX.XXX clientX.mteklab.local clientX
+[PUT ACTUAL IP FROM OCTAT AT 'XX' & REPLACE ACTUAL CLIENT NO. AT 'clientX']
+
+[SAVE AND EXIT THE VIM FILE]
+
+
+[root@client1 ~]# yum install -y ypbind yp-tools authconfig-gtk
+
+[root@client1 ~]# echo domain mteklab server 192.168.101.172 >> /etc/yp.conf
+[root@client1 ~]# echo ypserver mtek-srv >> /etc/yp.conf
+
+[root@client1 ~]# systemctl enable ypbind.service --now
+
+[root@client1 ~]# systemctl status ypbind.service
+
+SELinux settings :
+[root@client1 ~]# setenforce 0
+
+[root@client1 ~]# authconfig-tui
+It will open Authentication Configuration window.
+Using Arrow keys select Use NIS by pressing <spacebar key> on LHS and 
+Choose and enable USE MD5 Passwords on RHS
+Go to Next and hit <enter>
+On next NIS Settings window
+Enter details as below
+
+Domain :mteklab
+Server :192.168.101.172
+
+go to OK and hit <enter>
+
+[root@client1 ~]# authconfig --enablenis --nisdomain=mteklab --nisserver=192.168.101.172 --enablemkhomedir --update
+[root@client1 ~]# systemctl enable oddjobd.service --now
+
+================================================================
+NFS CLient config :
+
+[root@client1 ~]# yum install nfs-utils nfs4-acl-tools -y
+OUTPUT:[nothing to do!]
+
+#rpmquery autofs
+
+[OUTPUT]not installed.
+
+IF NOT INSTALLED THEN USE FOLLOWING COMMAND:
+
+#yum install autofs-y
+after complete message.
+run :
+#rpmquery autofs
+[OUTPUT]
+autofs-5.1.4-48xxx_64
+
+[now create a file with the following text]
+#echo 2022 -rw,sync 192.168.101.172:/home/ >> /etc/auto.txt
+#echo /access /etc/auto.txt --timeout=3600 >> /etc/auto.master
+
+#systemctl enable autofs.service --now
+
+#systemctl status autofs.service
+
+===============================================================
+PostgresQL Client Setup:
+===============================================================
+
+[root@client2 ~]# yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+
+[OUTPUT] ...
+Dependency Installed:
+  postgresql-libs.x86_64 0:9.2.24-8.el7_9                                       
+
+Complete!
+
+
+Open fstab file by command
+#vi /etc/fstab
+make comment following line
+/dev/mapper/centos-home /home                   xfs     defaults        0 0
+
+add following line at the end of file
+
+192.168.101.172:/home /home nfs defaults 0 0
+
+
+===============================================================
+[If any problem has occurred during boot or someting]
+===============================================================     
+         Press (e) on booting page
+
+         Find (US.UTF-8) at the end of the line which is started with (fi)
+          
+ 	 And write (rd.break) then press control+x for starting
+         
+	 After we will got (switch_root:/#)
+         
+			Then,   
+                            switch_root:/# mount -o remount,rw /sysroot
+			    switch_root:/# chroot /sysroot
+                         
+			Then we got (sh-4.2#) afet that mode we are able to open file and make changes if any mistak happens during the configuration
+
+=================================================================
+[If creating directory or home mount error occurred ]
+=================================================================			
+                        Then,
+			     Run (root@client2 ~]# df -kh ) for checking home is mount or not 	 
+                                                           Ex.(192.168.101.172:/home    2.0T  38G   1.9T  2%  /home) check this type of file mounted or not                                        
+
+[If not mounted home]            
+                        Then,
+			     Run (root@client2 ~]# mount -t nfs 192.168.101.172:/home /home
+	                         (root@client2 ~]# reboot
+
+
+If repos or baseurl erros occurs then go to this path 
+ 	
+                  #vi /etc/yum.repos.d/CentOS-Base.repo  
+
+And paste this data in this location 
+[base]
+name=CentOS-$releasever - Base
+baseurl=http://vault.centos.org/7.9.2009/os/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+[updates]
+name=CentOS-$releasever - Updates
+baseurl=http://vault.centos.org/7.9.2009/updates/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+[extras]
+name=CentOS-$releasever - Extras
+baseurl=http://vault.centos.org/7.9.2009/extras/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+[centosplus]
+name=CentOS-$releasever - Plus
+baseurl=http://vault.centos.org/7.9.2009/centosplus/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+Then check yum is working or Not !
+
+If yum lock another error occurs then run 
+	
+	#kill -9 "and type the which is given in error line" 
+
+And try again
+
+If pgdg-common error occurs then
+  
+	#sudo yum clean all
+	#yum  clean metadata
+	
+After that copy the pgdg-common error line and paste
+
+Then disable to 16 yum config-manager and then try again installation working or not
+     
+ 
+
+ [!done]           
+
+========================================
+<End-OF-Page>
+
+
+
